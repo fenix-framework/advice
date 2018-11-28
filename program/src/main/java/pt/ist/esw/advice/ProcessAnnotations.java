@@ -70,7 +70,7 @@ public class ProcessAnnotations {
         annotationInstance =
                 Type.getObjectType(GenerateAnnotationInstance.getAnnotationInstanceName(args.annotationClass));
 
-        Map<String, Object> annotationElements = new HashMap<String, Object>();
+        Map<String, Object> annotationElements = new HashMap<>();
         for (java.lang.reflect.Method element : args.annotationClass.getDeclaredMethods()) {
             if (element.getReturnType().isArray()) {
                 throw new Error("FIXME: Annotations containing arrays are not yet supported");
@@ -90,9 +90,9 @@ public class ProcessAnnotations {
             ClassReader cr = new ClassReader(is);
             ClassNode cNode = new ClassNode();
             cr.accept(cNode, 0);
-            annotationFields = cNode.fields != null ? cNode.fields : Collections.<FieldNode> emptyList();
+            annotationFields = cNode.fields != null ? cNode.fields : Collections.emptyList();
 
-            StringBuffer ctorDescriptor = new StringBuffer("(");
+            StringBuilder ctorDescriptor = new StringBuilder("(");
             for (FieldNode field : annotationFields) {
                 ctorDescriptor.append(field.desc);
             }
@@ -177,15 +177,15 @@ public class ProcessAnnotations {
     }
 
     private class MethodTransformer extends ClassVisitor {
-        private final List<MethodNode> methods = new ArrayList<MethodNode>();
-        private final List<String> advisedMethodNames = new ArrayList<String>();
+        private final List<MethodNode> methods = new ArrayList<>();
+        private final List<String> advisedMethodNames = new ArrayList<>();
         private final MethodNode advisedClInit;
         private final File classFile;
 
         private String className;
 
         public MethodTransformer(ClassVisitor cv, File originalClassFile) {
-            super(ASM4, cv);
+            super(ASM7, cv);
 
             classFile = originalClassFile;
 
@@ -261,7 +261,7 @@ public class ProcessAnnotations {
             RetentionPolicy policy = retAnnot == null ? RetentionPolicy.CLASS : retAnnot.value();
             List<AnnotationNode> list = policy == RetentionPolicy.CLASS ?
                     mn.invisibleAnnotations : mn.visibleAnnotations;
-            return list != null ? list : Collections.<AnnotationNode>emptyList();
+            return list != null ? list : Collections.emptyList();
         }
 
         /**
@@ -317,7 +317,7 @@ public class ProcessAnnotations {
 
             // Add code to clinit to initialize the field
             // Add default parameters from annotation
-            Map<String, Object> annotationElements = new HashMap<String, Object>(defaultAnnotationElements);
+            Map<String, Object> annotationElements = new HashMap<>(defaultAnnotationElements);
             // Copy parameters from method annotation
             if (advisedAnnotation.values != null) {
                 Iterator<Object> it = advisedAnnotation.values.iterator();
@@ -338,7 +338,7 @@ public class ProcessAnnotations {
             }
 
             advisedClInit.visitMethodInsn(INVOKESTATIC, factoryType.getInternalName(), "getInstance",
-                    "()" + Type.getType(AdviceFactory.class).getDescriptor());
+                    "()" + Type.getType(AdviceFactory.class).getDescriptor(), false);
 
             // Push annotation parameters on the stack and create AnnotationInstance
             advisedClInit.visitTypeInsn(NEW, annotationInstance.getInternalName());
@@ -356,10 +356,10 @@ public class ProcessAnnotations {
                 }
             }
             advisedClInit.visitMethodInsn(INVOKESPECIAL, annotationInstance.getInternalName(), "<init>",
-                    annotationInstanceCtorDesc);
+                    annotationInstanceCtorDesc, false);
             // Obtain advice for this method
             advisedClInit.visitMethodInsn(INVOKEVIRTUAL, Type.getType(AdviceFactory.class).getInternalName(), "newAdvice", "("
-                    + Type.getType(Annotation.class).getDescriptor() + ")" + ADVICE.getDescriptor());
+                    + Type.getType(Annotation.class).getDescriptor() + ")" + ADVICE.getDescriptor(), false);
 
             advisedClInit.visitFieldInsn(PUTSTATIC, className, fieldName, ADVICE.getDescriptor());
 
@@ -412,8 +412,8 @@ public class ProcessAnnotations {
             // Rename original method
             mn.name = "advised$" + mn.name;
             // Remove annotations from original method
-            mn.invisibleAnnotations = Collections.<AnnotationNode> emptyList();
-            mn.visibleAnnotations = Collections.<AnnotationNode> emptyList();
+            mn.invisibleAnnotations = Collections.emptyList();
+            mn.visibleAnnotations = Collections.emptyList();
             // Modify the access flags, setting the method as package protected, so that the callable can access it
             mn.access &= ~ACC_PRIVATE & ~ACC_PUBLIC;
             // Also mark it as synthetic, so Java tools ignore it
@@ -447,9 +447,9 @@ public class ProcessAnnotations {
                 mv.visitVarInsn(t.getOpcode(ILOAD), pos);
                 pos += t.getSize();
             }
-            mv.visitMethodInsn(INVOKESPECIAL, callableClass, "<init>", getCallableCtorDesc(mn));
+            mv.visitMethodInsn(INVOKESPECIAL, callableClass, "<init>", getCallableCtorDesc(mn), false);
             mv.visitMethodInsn(INVOKEINTERFACE, ADVICE.getInternalName(), "perform",
-                    "(Ljava/util/concurrent/Callable;)Ljava/lang/Object;");
+                    "(Ljava/util/concurrent/Callable;)Ljava/lang/Object;", true);
 
             // Return value
             Type returnType = Type.getReturnType(mn.desc);
@@ -511,7 +511,7 @@ public class ProcessAnnotations {
                 MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "<init>", getCallableCtorDesc(mn), null, null);
                 mv.visitCode();
                 mv.visitVarInsn(ALOAD, 0);
-                mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V");
+                mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
                 int localsPos = 0;
                 int fieldPos = 0;
                 for (Type t : arguments) {
@@ -534,7 +534,7 @@ public class ProcessAnnotations {
                     mv.visitVarInsn(ALOAD, 0);
                     mv.visitFieldInsn(GETFIELD, callableClass, "arg" + fieldPos++, t.getDescriptor());
                 }
-                mv.visitMethodInsn(INVOKESTATIC, className, mn.name, mn.desc);
+                mv.visitMethodInsn(INVOKESTATIC, className, mn.name, mn.desc, false);
                 if (returnType.equals(Type.VOID_TYPE)) {
                     mv.visitInsn(ACONST_NULL);
                 } else if (isPrimitive(returnType)) {
@@ -572,15 +572,15 @@ public class ProcessAnnotations {
 
         private void boxWrap(Type primitiveType, MethodVisitor mv) {
             Type objectType = toObject(primitiveType);
-            mv.visitMethodInsn(INVOKESTATIC, objectType.getInternalName(), "valueOf", "(" + primitiveType.getDescriptor() + ")"
-                    + objectType.getDescriptor());
+            mv.visitMethodInsn(INVOKESTATIC, objectType.getInternalName(), "valueOf",
+                    "(" + primitiveType.getDescriptor() + ")" + objectType.getDescriptor(), false);
         }
 
         private void boxUnwrap(Type primitiveType, MethodVisitor mv) {
             Type objectType = toObject(primitiveType);
             mv.visitTypeInsn(CHECKCAST, objectType.getInternalName());
-            mv.visitMethodInsn(INVOKEVIRTUAL, objectType.getInternalName(), primitiveType.getClassName() + "Value", "()"
-                    + primitiveType.getDescriptor());
+            mv.visitMethodInsn(INVOKEVIRTUAL, objectType.getInternalName(), primitiveType.getClassName() + "Value",
+                    "()" + primitiveType.getDescriptor(), false);
         }
 
         private boolean fieldIsEnum(FieldNode field) {
@@ -605,7 +605,7 @@ public class ProcessAnnotations {
     public static class ProgramArgs {
         Class<? extends Annotation> annotationClass;
         Class<? extends AdviceFactory<?>> annotationFactoryClass;
-        List<File> fileList = new ArrayList<File>();
+        List<File> fileList = new ArrayList<>();
 
         public ProgramArgs(Class<? extends Annotation> annotationClass, Class<? extends AdviceFactory<?>> annotationFactoryClass) {
             this.annotationClass = annotationClass;
