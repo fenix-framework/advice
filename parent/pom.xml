@@ -8,13 +8,21 @@
     
     <name>Advice via Annotation for Java (parent POM)</name>
 
+    <licenses>
+        <license>
+            <name>GNU Lesser General Public License v3.0</name>
+            <url>https://www.gnu.org/licenses/lgpl-3.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
     <scm>
-        <connection>scm:git:git@github.com:inesc-id-esw/advice.git</connection>
-        <developerConnection>scm:git:git@github.com:inesc-id-esw/advice.git</developerConnection>
+        <connection>scm:git:git@github.com:fenix-framework/advice.git</connection>
+        <developerConnection>scm:git:git@github.com:fenix-framework/advice.git</developerConnection>
         <url>http://inesc-id-esw.github.com/advice</url>
       <tag>HEAD</tag>
-  </scm>
-    
+    </scm>
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -63,38 +71,26 @@
                 <artifactId>maven-release-plugin</artifactId>
                 <version>2.4.1</version>
                 <configuration>
-                    <pushChanges>false</pushChanges>
+                    <tagNameFormat>v@{project.version}</tagNameFormat>
+                    <!-- Ensure that every module is versioned together -->
+                    <autoVersionSubmodules>true</autoVersionSubmodules>
                 </configuration>
             </plugin>
         </plugins>
     </build>
 
-    <!--
-        note: making a release of this software on GitHub's gh-pages branch
-        requires an existing clone of such branch in another directory in your
-        computer, and then to configure the property
-        ${project.deploy.maven-repo} to point to the maven repository within
-        such location. E.g.:
-
-             .
-             |__ advice
-             |   \__ ...
-             |__ advice-pages
-                 |__ ...
-                 \__ maven-repo
-
-         Then just run `mvn clean deploy` in the checkout you wish to deploy :-)
-    -->
+    <repositories>
+        <repository>
+            <id>fenixedu-maven-repository</id>
+            <url>https://repo.fenixedu.org/fenixedu-maven-repository</url>
+        </repository>
+    </repositories>
 
     <distributionManagement>
         <repository>
-            <id>gh-pages</id>
-            <url>${project.deploy.maven-repo}</url>
+            <id>fenixedu-releases</id>
+            <url>https://repo.fenixedu.org/fenixedu-releases</url>
         </repository>
-        <snapshotRepository>
-            <id>gh-pages</id>
-            <url>${project.deploy.maven-repo}</url>
-        </snapshotRepository>
     </distributionManagement>
 
 </project>
