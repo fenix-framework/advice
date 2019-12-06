@@ -29,5 +29,5 @@ package pt.ist.esw.advice;
 import java.util.concurrent.Callable;
 
 public interface Advice {
-    public <V> V perform(Callable<V> method) throws Exception;
+    <V> V perform(Callable<V> method) throws Exception;
 }

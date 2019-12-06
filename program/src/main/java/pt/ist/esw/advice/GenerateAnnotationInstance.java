@@ -82,7 +82,7 @@ public final class GenerateAnnotationInstance {
 
         // Generate constructor
         {
-            StringBuffer ctorDescriptor = new StringBuffer("(");
+            StringBuilder ctorDescriptor = new StringBuilder("(");
             for (MethodNode annotationElems : cNode.methods) {
                 ctorDescriptor.append(getReturnTypeDescriptor(annotationElems));
             }
@@ -91,7 +91,7 @@ public final class GenerateAnnotationInstance {
             MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "<init>", ctorDescriptor.toString(), null, null);
             mv.visitCode();
             mv.visitVarInsn(ALOAD, 0);
-            mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V");
+            mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
             int localsPos = 0;
             for (MethodNode annotationElems : cNode.methods) {
                 Type t = Type.getReturnType(annotationElems.desc);
