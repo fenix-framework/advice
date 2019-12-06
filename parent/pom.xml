@@ -18,7 +18,7 @@
 
     <scm>
         <connection>scm:git:git@github.com:fenix-framework/advice.git</connection>
-        <developerConnection>scm:git:git@github.com:fenix-framework/advice.git</developerConnection>
+        <developerConnection>scm:git:git@github.com:fenix-framework</developerConnection>
         <url>http://inesc-id-esw.github.com/advice</url>
       <tag>HEAD</tag>
     </scm>
